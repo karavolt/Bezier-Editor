@@ -148,17 +148,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CHAR:
 		switch (wParam)
 		{
-			/*
-		case 'R':
-			bezierContainer[0].BezierAlphabet.clear();
-			CurActiveLineNumber = 0;
-			b1.BColor = RED;
-			bezierContainer[0].BezierAlphabet.push_back(b1);		
-			break;
-		case 'r':
-			bezierContainer[0].BezierAlphabet[CurActiveLineNumber].BCurve.clear();
-			break;
-			*/
 		case 'A':
 		case 'a':
 			b1.BColor = RED;
