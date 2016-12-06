@@ -130,19 +130,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
 	case WM_CREATE:		
-		a.AllocationAlphabet = 'a';
-		b1.BColor = RED;
+		a.AllocationAlphabet = AlphabetMap::AlphaBetA;
+		b1.BColor = BLACK;
+		b1.isModifing = true;
 		a.BezierAlphabet.push_back(b1);
-		bezierContainer.push_back(a);
-		//b.AllocationAlphabet = 'b';
-		//c.AllocationAlphabet = 'c';		
-		//bezierContainer.push_back(b);
-		//bezierContainer.push_back(c);
+		bezierContainer.push_back(a); 
+
+		curRgb = 0x000000;
+
+		ZeroMemory(&curPickColor, sizeof(curPickColor));
+		curPickColor.lStructSize = sizeof(curPickColor);
+		curPickColor.hwndOwner = hWnd;
+		curPickColor.lpCustColors = (LPDWORD)acrCustClr;
+		curPickColor.rgbResult = curRgb;
+		curPickColor.Flags = CC_FULLOPEN | CC_RGBINIT;
 		break;
 	case WM_LBUTTONDOWN:
 		pos.x = LOWORD(lParam);
 		pos.y = HIWORD(lParam);
-		bezierContainer[0].BezierAlphabet[CurActiveLineNumber].BCurve.push_back(pos);
+		bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].BCurve.push_back(pos);
 		InvalidateRect(hWnd, 0, true);
 		break;
 	case WM_CHAR:
@@ -150,8 +156,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case 'A':
 		case 'a':
-			b1.BColor = RED;
-			bezierContainer[0].BezierAlphabet.push_back(b1);
+			bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].isModifing = false;
+			bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].BColor = curRgb;
+
+			b1.BColor = curRgb;
+			b1.isModifing = true;
+			bezierContainer[0].BezierAlphabet.push_back(b1);			
 			CurActiveLineNumber++;
 			break;
 		}		
@@ -173,7 +183,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_REMOVEALL:
 				bezierContainer[0].BezierAlphabet.clear();
 				CurActiveLineNumber = 0;
-				b1.BColor = RED;
+				b1.BColor = BLACK;
 				bezierContainer[0].BezierAlphabet.push_back(b1);
 				InvalidateRect(hWnd, 0, true);
 				break;
@@ -184,6 +194,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_LINE:
 				bShowLine = !bShowLine;
 				InvalidateRect(hWnd, 0, true);
+				break;
+			case IDM_PICKCOLOR:
+				if (ChooseColor(&curPickColor) == true)
+				{
+					curRgb = curPickColor.rgbResult;
+					InvalidateRect(hWnd, 0, true);
+				}
 				break;
             case IDM_EXIT:
                 DestroyWindow(hWnd);
@@ -198,7 +215,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다.
-			DrawBezier(hdc,'a');
+			DrawBezier(hdc,CurAllocAlpha);
             EndPaint(hWnd, &ps);
         }
         break;
@@ -235,7 +252,7 @@ void DrawBezier(HDC hdc, char AllocAlpha)
 {
 	int i;
 	double t;
-	BezierCurves cur = FindAllocAlphabet(AllocAlpha);
+	BezierCurves cur = bezierContainer[CurAllocAlpha];
 
 	// 벡터안에 저장되어 있을경우는 잘 됨.
 	if (!cur.BezierAlphabet.empty())
@@ -260,7 +277,9 @@ void DrawBezier(HDC hdc, char AllocAlpha)
 						yt += (degree - 1) * pow(t, i)  *pow(1 - t, degree - 1 - i) * it->BCurve[0 + i].y;
 					}
 				}
-				SetPixel(hdc, xt, yt, it->BColor);
+
+				COLORREF usingColor = (it->isModifing ? curRgb : it->BColor);
+				SetPixel(hdc, xt, yt, usingColor);
 			}
 
 
@@ -277,18 +296,4 @@ void DrawBezier(HDC hdc, char AllocAlpha)
 			}
 		}
 	}
-}
-
-BezierCurves FindAllocAlphabet(char key) {
-	BezierCurves tmp;
-
-	vector<BezierCurves>::iterator it;
-	for (it = bezierContainer.begin(); it < bezierContainer.end(); it++)
-	{
-		if (it->AllocationAlphabet == key)
-		{
-			tmp = *it;
-		}
-	}
-	return tmp;
 }
