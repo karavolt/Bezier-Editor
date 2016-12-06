@@ -134,7 +134,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
 	case WM_CREATE:		
 		
-		b1.BColor = BLACK;
+		b1.BColor = 0x000000;
 		b1.isModifing = true;
 		a.BezierAlphabet.push_back(b1);
 		for (int i = 0; i < 26; i++)
@@ -154,23 +154,48 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		break;
 	case WM_LBUTTONDOWN:
-		pos.x = LOWORD(lParam);
-		pos.y = HIWORD(lParam);
+		pos.x = LOWORD(lParam) * xRatio;
+		pos.y = HIWORD(lParam) * yRatio;
 		bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].BCurve.push_back(pos);
 		InvalidateRect(hWnd, 0, true);
+		break;
+	case WM_KEYDOWN:
+		switch (wParam)
+		{
+		case VK_UP:
+			yOffset -= 10.0;
+			InvalidateRect(hWnd, 0, true);
+			break;
+		case VK_DOWN:
+			yOffset += 10.0;			
+			InvalidateRect(hWnd, 0, true);
+			break;
+		case VK_LEFT:
+			xOffset -= 10.0;			
+			InvalidateRect(hWnd, 0, true);
+			break;
+		case VK_RIGHT:
+			xOffset += 10.0;
+			InvalidateRect(hWnd, 0, true);
+			break;
+		case VK_SPACE:
+			xOffset = 0.0;
+			yOffset = 0.0;
+			break;
+		}
 		break;
 	case WM_CHAR:
 		switch (wParam)
 		{
 		case 'W':
 		case 'w':
-			xRatio += 0.5;
-			yRatio += 0.5;
+			xRatio += 0.25;
+			yRatio += 0.25;
 			break;
 		case 'S':
 		case 's':
-			xRatio -= 0.5;
-			yRatio -= 0.5;
+			xRatio -= 0.25;
+			yRatio -= 0.25;
 			break;
 		case 'A':
 		case 'a':
@@ -212,7 +237,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_REMOVEALL:
 				bezierContainer[CurAllocAlpha].BezierAlphabet.clear();
 				CurActiveLineNumber = 0;
-				b1.BColor = BLACK;
+				b1.BColor = 0x000000;
 				bezierContainer[CurAllocAlpha].BezierAlphabet.push_back(b1);
 				InvalidateRect(hWnd, 0, true);
 				break;
@@ -313,25 +338,27 @@ void DrawBezier(HDC hdc, char AllocAlpha)
 		for (it = cur.BezierAlphabet.begin(); it < cur.BezierAlphabet.end(); it++)
 		{
 			int degree = it->BCurve.size();
-			for (t = 0.0; t < 1.0; t += 0.0005)
+			for (t = 0.0; t < 1.0; t += 0.001)
 			{
 				double xt = 0.0, yt = 0.0;
 				for (int i = 0; i < degree; i++)
 				{
+					double xPos = it->BCurve[0 + i].x * xRatio, 
+							yPos = it->BCurve[0 + i].y * yRatio;
 					if (i == 0 || i == degree - 1)
 					{
-						xt += pow(t, i)  * pow(1 - t, degree - 1 - i) * (it->BCurve[0 + i].x * xRatio);
-						yt += pow(t, i)  * pow(1 - t, degree - 1 - i) * (it->BCurve[0 + i].y * yRatio);
+						xt += pow(t, i)  * pow(1 - t, degree - 1 - i) * (xPos);
+						yt += pow(t, i)  * pow(1 - t, degree - 1 - i) * (yPos);
 					}
 					else
 					{
-						xt += (degree - 1) * pow(t, i)  *pow(1 - t, degree - 1 - i) * (it->BCurve[0 + i].x * xRatio);
-						yt += (degree - 1) * pow(t, i)  *pow(1 - t, degree - 1 - i) * (it->BCurve[0 + i].y * yRatio);
+						xt += (degree - 1) * pow(t, i)  *pow(1 - t, degree - 1 - i) * (xPos);
+						yt += (degree - 1) * pow(t, i)  *pow(1 - t, degree - 1 - i) * (yPos);
 					}
 				}
 
 				COLORREF usingColor = (it->isModifing ? curRgb : it->BColor);
-				SetPixel(hdc, xt, yt, usingColor);
+				SetPixel(hdc, xt + xOffset, yt + yOffset, usingColor);
 			}
 
 
@@ -340,10 +367,10 @@ void DrawBezier(HDC hdc, char AllocAlpha)
 			{
 				vector<Point2d>::iterator pit;
 				// 시작점으로 이동
-				MoveToEx(hdc, it->BCurve[0].x * xRatio, it->BCurve[0].y * yRatio, NULL);
+				MoveToEx(hdc, it->BCurve[0].x * xRatio + xOffset, it->BCurve[0].y * yRatio + yOffset, NULL);
 				for (pit = it->BCurve.begin(); pit < it->BCurve.end(); pit++)
 				{
-					LineTo(hdc, pit->x * xRatio, pit->y * yRatio);
+					LineTo(hdc, pit->x * xRatio + xOffset, pit->y * yRatio + yOffset);
 				}
 			}
 		}
