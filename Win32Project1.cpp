@@ -11,6 +11,7 @@ HINSTANCE hInst;                                // 현재 인스턴스입니다.
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
 
+
 // 이 코드 모듈에 들어 있는 함수의 정방향 선언입니다.
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
@@ -99,12 +100,14 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+      0, 0, 1024, 768, nullptr, nullptr, hInstance, nullptr);
 
    if (!hWnd)
    {
       return FALSE;
    }
+
+   g_hWnd = hWnd;
 
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
@@ -130,20 +133,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
 	case WM_CREATE:		
-		a.AllocationAlphabet = AlphabetMap::AlphaBetA;
+		
 		b1.BColor = BLACK;
 		b1.isModifing = true;
 		a.BezierAlphabet.push_back(b1);
-		bezierContainer.push_back(a); 
+		for (int i = 0; i < 26; i++)
+		{
+			a.AllocationAlphabet = AlphabetMap::AlphaBetA + i;			
+			bezierContainer.push_back(a);
+		}
 
+		// color Dialog
 		curRgb = 0x000000;
-
 		ZeroMemory(&curPickColor, sizeof(curPickColor));
 		curPickColor.lStructSize = sizeof(curPickColor);
 		curPickColor.hwndOwner = hWnd;
 		curPickColor.lpCustColors = (LPDWORD)acrCustClr;
 		curPickColor.rgbResult = curRgb;
 		curPickColor.Flags = CC_FULLOPEN | CC_RGBINIT;
+
 		break;
 	case WM_LBUTTONDOWN:
 		pos.x = LOWORD(lParam);
@@ -154,6 +162,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CHAR:
 		switch (wParam)
 		{
+		case 'W':
+		case 'w':
+			xRatio += 0.5;
+			yRatio += 0.5;
+			break;
+		case 'S':
+		case 's':
+			xRatio -= 0.5;
+			yRatio -= 0.5;
+			break;
 		case 'A':
 		case 'a':
 			bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].isModifing = false;
@@ -161,7 +179,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			b1.BColor = curRgb;
 			b1.isModifing = true;
-			bezierContainer[0].BezierAlphabet.push_back(b1);			
+			bezierContainer[CurAllocAlpha].BezierAlphabet.push_back(b1);			
 			CurActiveLineNumber++;
 			break;
 		}		
@@ -170,25 +188,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
+			
             // 메뉴 선택을 구문 분석합니다.
             switch (wmId)
-            {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+            {			
+            case IDM_CHANGECHAR:
+                DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, About);
                 break;
+			case IDM_ADDCURVE:
+				bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].isModifing = false;
+				bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].BColor = curRgb;
+
+				b1.BColor = curRgb;
+				b1.isModifing = true;
+				bezierContainer[CurAllocAlpha].BezierAlphabet.push_back(b1);
+				CurActiveLineNumber++;
+				break;
+				break;
 			case IDM_REMOVEONE:
-				bezierContainer[0].BezierAlphabet[CurActiveLineNumber].BCurve.clear();
+				bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].BCurve.clear();
 				InvalidateRect(hWnd, 0, true);
 				break;
 			case IDM_REMOVEALL:
-				bezierContainer[0].BezierAlphabet.clear();
+				bezierContainer[CurAllocAlpha].BezierAlphabet.clear();
 				CurActiveLineNumber = 0;
 				b1.BColor = BLACK;
-				bezierContainer[0].BezierAlphabet.push_back(b1);
+				bezierContainer[CurAllocAlpha].BezierAlphabet.push_back(b1);
 				InvalidateRect(hWnd, 0, true);
 				break;
 			case IDM_REMOVELAST:
-				bezierContainer[0].BezierAlphabet[CurActiveLineNumber].BCurve.pop_back();
+				bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].BCurve.pop_back();
 				InvalidateRect(hWnd, 0, true);
 				break;
 			case IDM_LINE:
@@ -201,6 +230,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					curRgb = curPickColor.rgbResult;
 					InvalidateRect(hWnd, 0, true);
 				}
+				break;
+			case IDM_CHANGEALPHA:
+				DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, About);
 				break;
             case IDM_EXIT:
                 DestroyWindow(hWnd);
@@ -228,18 +260,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
+
 // 정보 대화 상자의 메시지 처리기입니다.
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
+	
     switch (message)
     {
     case WM_INITDIALOG:
+		hwndCombo = GetDlgItem(hDlg, IDC_COMBO1);
+		for (int i = 0; i < 26; i++)
+		{
+			SendMessage(hwndCombo, CB_ADDSTRING, 0,(LPARAM) Alphabet[i]);
+		}
+		SendMessage(hwndCombo, CB_SETCURSEL, (WPARAM) CurAllocAlpha, (LPARAM) 0);
         return (INT_PTR)TRUE;
-
+		break;
     case WM_COMMAND:
+		if (LOWORD(wParam) == IDC_COMBO1)
+		{		
+			if (HIWORD(wParam) == CBN_SELCHANGE)
+			{
+				int ItemIndex = SendMessage((HWND)hwndCombo, (UINT)CB_GETCURSEL,
+					(WPARAM)0, (LPARAM)0);
+				CurAllocAlpha = ItemIndex;
+				CurActiveLineNumber = bezierContainer[CurAllocAlpha].BezierAlphabet.size() - 1;
+				
+			}
+		}
         if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
         {
+			InvalidateRect(g_hWnd, 0, true);
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
         }
@@ -268,13 +320,13 @@ void DrawBezier(HDC hdc, char AllocAlpha)
 				{
 					if (i == 0 || i == degree - 1)
 					{
-						xt += pow(t, i)  * pow(1 - t, degree - 1 - i) * it->BCurve[0 + i].x;
-						yt += pow(t, i)  * pow(1 - t, degree - 1 - i) * it->BCurve[0 + i].y;
+						xt += pow(t, i)  * pow(1 - t, degree - 1 - i) * (it->BCurve[0 + i].x * xRatio);
+						yt += pow(t, i)  * pow(1 - t, degree - 1 - i) * (it->BCurve[0 + i].y * yRatio);
 					}
 					else
 					{
-						xt += (degree - 1) * pow(t, i)  *pow(1 - t, degree - 1 - i) * it->BCurve[0 + i].x;
-						yt += (degree - 1) * pow(t, i)  *pow(1 - t, degree - 1 - i) * it->BCurve[0 + i].y;
+						xt += (degree - 1) * pow(t, i)  *pow(1 - t, degree - 1 - i) * (it->BCurve[0 + i].x * xRatio);
+						yt += (degree - 1) * pow(t, i)  *pow(1 - t, degree - 1 - i) * (it->BCurve[0 + i].y * yRatio);
 					}
 				}
 
@@ -288,10 +340,10 @@ void DrawBezier(HDC hdc, char AllocAlpha)
 			{
 				vector<Point2d>::iterator pit;
 				// 시작점으로 이동
-				MoveToEx(hdc, it->BCurve[0].x, it->BCurve[0].y, NULL);
+				MoveToEx(hdc, it->BCurve[0].x * xRatio, it->BCurve[0].y * yRatio, NULL);
 				for (pit = it->BCurve.begin(); pit < it->BCurve.end(); pit++)
 				{
-					LineTo(hdc, pit->x, pit->y);
+					LineTo(hdc, pit->x * xRatio, pit->y * yRatio);
 				}
 			}
 		}

@@ -63,6 +63,9 @@ int CurActiveLineNumber = 0;
 // 직선 On/Off
 bool bShowLine = true;
 
+//축소 확대 비율
+double xRatio = 3.0;
+double yRatio = 3.0;
 // 미리정의된 색
 const COLORREF WHITE = 0xFFFFFF;
 const COLORREF BLACK = 0x000000;
@@ -74,5 +77,12 @@ const COLORREF BLUE = 0x0000FF;
 CHOOSECOLOR curPickColor;
 DWORD curRgb;
 COLORREF acrCustClr[16];	// 미리정의된 색
+
+HWND g_hWnd = NULL;
+HWND hwndCombo = NULL;
+TCHAR Alphabet[26][2] = { TEXT("a"), TEXT("b"), TEXT("c"), TEXT("d"), TEXT("e"), TEXT("f"), TEXT("g"), TEXT("h"), TEXT("i"),
+						  TEXT("j"), TEXT("k"), TEXT("l"), TEXT("m"), TEXT("n"), TEXT("o"), TEXT("p"), TEXT("q"), TEXT("r"), 
+						  TEXT("s"), TEXT("t"), TEXT("u"), TEXT("v"), TEXT("w"), TEXT("x"), TEXT("y"), TEXT("z") };
 // 함수 원형
 void DrawBezier(HDC hdc, char AllocAlpha);
+
