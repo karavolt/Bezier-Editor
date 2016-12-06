@@ -107,6 +107,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
 
+
+   // 전역 윈도우 핸들 사용을 위해 저장
    g_hWnd = hWnd;
 
    ShowWindow(hWnd, nCmdShow);
@@ -127,23 +129,29 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	// 벡터저장용 더미 -->
 	BezierCurves a;
 	BezierCurve b1;
 	Point2d pos;
+	// 벡터저장용 더미 <--
     switch (message)
     {
 	case WM_CREATE:		
 		
+		// 초기 실행시 알파벳 26자에 대해서 초기화 진행 -->
 		b1.BColor = 0x000000;
 		b1.isModifing = true;
 		a.BezierAlphabet.push_back(b1);
 		for (int i = 0; i < 26; i++)
 		{
+			// 사용편의를 위해 'a' == 0으로 사용하려고 enum사용
 			a.AllocationAlphabet = AlphabetMap::AlphaBetA + i;			
 			bezierContainer.push_back(a);
 		}
+		// 초기 실행시 알파벳 26자에 대해서 초기화 진행 <--
 
-		// color Dialog
+
+		// color Dialog setting -->
 		curRgb = 0x000000;
 		ZeroMemory(&curPickColor, sizeof(curPickColor));
 		curPickColor.lStructSize = sizeof(curPickColor);
@@ -151,42 +159,50 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		curPickColor.lpCustColors = (LPDWORD)acrCustClr;
 		curPickColor.rgbResult = curRgb;
 		curPickColor.Flags = CC_FULLOPEN | CC_RGBINIT;
+		// color Dialog setting <--
 
 		break;
 	case WM_LBUTTONDOWN:
+		// 점찍으면 점정보 저장 -->
 		pos.x = LOWORD(lParam) * xRatio;
 		pos.y = HIWORD(lParam) * yRatio;
 		bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].BCurve.push_back(pos);
-		InvalidateRect(hWnd, 0, true);
+		// 점찍으면 점정보 저장 <--
+		InvalidateRect(hWnd, 0, true);	// 윈도우 다시그리기(이하 생략하는 주석)
 		break;
 	case WM_KEYDOWN:
 		switch (wParam)
 		{
+		// 스케일링후 베지어 곡선 이동시켜 보기위한 코드 -->
 		case VK_UP:
 			yOffset -= 10.0;
-			InvalidateRect(hWnd, 0, true);
 			break;
 		case VK_DOWN:
 			yOffset += 10.0;			
-			InvalidateRect(hWnd, 0, true);
 			break;
 		case VK_LEFT:
 			xOffset -= 10.0;			
-			InvalidateRect(hWnd, 0, true);
 			break;
 		case VK_RIGHT:
 			xOffset += 10.0;
-			InvalidateRect(hWnd, 0, true);
 			break;
+		// 스케일링후 베지어 곡선 이동시켜 보기위한 코드 <--
+
+		// 오프셋, 비율 초기화 -->
 		case VK_SPACE:
 			xOffset = 0.0;
 			yOffset = 0.0;
+			xRatio = 0.0;
+			yRatio = 0.0;
+		// 오프셋, 비율 초기화 <--
 			break;
 		}
+		InvalidateRect(hWnd, 0, true);
 		break;
 	case WM_CHAR:
 		switch (wParam)
 		{
+		// 확대 축소 -->
 		case 'W':
 		case 'w':
 			xRatio += 0.25;
@@ -197,6 +213,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			xRatio -= 0.25;
 			yRatio -= 0.25;
 			break;
+		// 확대 축소 <--
+
+		// 커브 추가 단축키 -->
 		case 'A':
 		case 'a':
 			bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].isModifing = false;
@@ -206,6 +225,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			b1.isModifing = true;
 			bezierContainer[CurAllocAlpha].BezierAlphabet.push_back(b1);			
 			CurActiveLineNumber++;
+		// 커브 추가 단축키 <--
 			break;
 		}		
 		InvalidateRect(hWnd, 0, true);
@@ -217,9 +237,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // 메뉴 선택을 구문 분석합니다.
             switch (wmId)
             {			
-            case IDM_CHANGECHAR:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, About);
-                break;
+			
+			// 알파벳 변경 다이얼로그 팝업~
+			case IDM_CHANGECHAR:
+				DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, About);
+				break;
+
+			// 커브 추가~
 			case IDM_ADDCURVE:
 				bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].isModifing = false;
 				bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].BColor = curRgb;
@@ -229,11 +253,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				bezierContainer[CurAllocAlpha].BezierAlphabet.push_back(b1);
 				CurActiveLineNumber++;
 				break;
-				break;
+
+			// 현재 수정중인 커브 삭제
 			case IDM_REMOVEONE:
+				if (bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].BCurve.size() == 0)
 				bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].BCurve.clear();
 				InvalidateRect(hWnd, 0, true);
 				break;
+
+			// 현재 알파벳의 모든 커브 삭제
 			case IDM_REMOVEALL:
 				bezierContainer[CurAllocAlpha].BezierAlphabet.clear();
 				CurActiveLineNumber = 0;
@@ -241,24 +269,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				bezierContainer[CurAllocAlpha].BezierAlphabet.push_back(b1);
 				InvalidateRect(hWnd, 0, true);
 				break;
+
+			// 마지막으로 추가된 점 삭제
 			case IDM_REMOVELAST:
-				bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].BCurve.pop_back();
+				if (!bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].BCurve.empty())
+					bezierContainer[CurAllocAlpha].BezierAlphabet[CurActiveLineNumber].BCurve.pop_back();
 				InvalidateRect(hWnd, 0, true);
 				break;
+
+			// LineTo로 그린 직선 On/Off
 			case IDM_LINE:
 				bShowLine = !bShowLine;
 				InvalidateRect(hWnd, 0, true);
 				break;
+			
+			// 컬러 선택 다이얼로그 팝업
 			case IDM_PICKCOLOR:
 				if (ChooseColor(&curPickColor) == true)
 				{
+					// 선택된 색을 현재 색으로 저장~
 					curRgb = curPickColor.rgbResult;
 					InvalidateRect(hWnd, 0, true);
 				}
 				break;
-			case IDM_CHANGEALPHA:
-				DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, About);
-				break;
+
+			//종료~
             case IDM_EXIT:
                 DestroyWindow(hWnd);
                 break;
@@ -271,8 +306,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다.
-			DrawBezier(hdc,CurAllocAlpha);
+            // 베지어 곡선 그리기
+			DrawBezier(hdc);
             EndPaint(hWnd, &ps);
         }
         break;
@@ -294,11 +329,13 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_INITDIALOG:
+		// 다이얼로그 초기화 하면서 a~z까지 콤보박스에 넣기
 		hwndCombo = GetDlgItem(hDlg, IDC_COMBO1);
 		for (int i = 0; i < 26; i++)
 		{
 			SendMessage(hwndCombo, CB_ADDSTRING, 0,(LPARAM) Alphabet[i]);
 		}
+		// 현재 수정중인 알파벳으로 포커스 수정
 		SendMessage(hwndCombo, CB_SETCURSEL, (WPARAM) CurAllocAlpha, (LPARAM) 0);
         return (INT_PTR)TRUE;
 		break;
@@ -307,6 +344,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		{		
 			if (HIWORD(wParam) == CBN_SELCHANGE)
 			{
+				// 콤보박스 선택한게 바뀌면 변경해주는 처리
 				int ItemIndex = SendMessage((HWND)hwndCombo, (UINT)CB_GETCURSEL,
 					(WPARAM)0, (LPARAM)0);
 				CurAllocAlpha = ItemIndex;
@@ -325,54 +363,64 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-void DrawBezier(HDC hdc, char AllocAlpha)
+void DrawBezier(HDC hdc)
 {
-	int i;
-	double t;
+	// 현재 수정중인 알파벳을 가져오자
 	BezierCurves cur = bezierContainer[CurAllocAlpha];
 
-	// 벡터안에 저장되어 있을경우는 잘 됨.
-	if (!cur.BezierAlphabet.empty())
+	// 반복 연산자 사용~
+	vector<BezierCurve>::iterator it;
+	for (it = cur.BezierAlphabet.begin(); it < cur.BezierAlphabet.end(); it++)
 	{
-		vector<BezierCurve>::iterator it;
-		for (it = cur.BezierAlphabet.begin(); it < cur.BezierAlphabet.end(); it++)
-		{
-			int degree = it->BCurve.size();
-			for (t = 0.0; t < 1.0; t += 0.001)
-			{
-				double xt = 0.0, yt = 0.0;
-				for (int i = 0; i < degree; i++)
-				{
-					double xPos = it->BCurve[0 + i].x * xRatio, 
-							yPos = it->BCurve[0 + i].y * yRatio;
-					if (i == 0 || i == degree - 1)
-					{
-						xt += pow(t, i)  * pow(1 - t, degree - 1 - i) * (xPos);
-						yt += pow(t, i)  * pow(1 - t, degree - 1 - i) * (yPos);
-					}
-					else
-					{
-						xt += (degree - 1) * pow(t, i)  *pow(1 - t, degree - 1 - i) * (xPos);
-						yt += (degree - 1) * pow(t, i)  *pow(1 - t, degree - 1 - i) * (yPos);
-					}
-				}
+		// 점의 수를 차수로 사용하자
+		int degree = it->BCurve.size();
 
-				COLORREF usingColor = (it->isModifing ? curRgb : it->BColor);
-				SetPixel(hdc, xt + xOffset, yt + yOffset, usingColor);
+		// t는 [0,1], 0.001간격으로 점찍기
+		for (double t = 0.0; t < 1.0; t += 0.001)
+		{
+			// 베지어 곡선 계산한 x,y좌표
+			double xt = 0.0, yt = 0.0;
+
+			// 차수만큼 알아서 계산한다
+			for (int i = 0; i < degree; i++)
+			{
+				// 점정보를 받아와 확대비율을 곱한다
+				double xPos = it->BCurve[0 + i].x * xRatio,
+				   	   yPos = it->BCurve[0 + i].y * yRatio;
+
+				// 맨처음과 맨마지막은 차수만큼 곱하지 않음.
+				if (i == 0 || i == degree - 1)
+				{
+					xt += pow(t, i)  * pow(1 - t, degree - 1 - i) * (xPos);
+					yt += pow(t, i)  * pow(1 - t, degree - 1 - i) * (yPos);
+				}
+				else
+				{
+					xt += (degree - 1) * pow(t, i)  *pow(1 - t, degree - 1 - i) * (xPos);
+					yt += (degree - 1) * pow(t, i)  *pow(1 - t, degree - 1 - i) * (yPos);
+				}
 			}
 
+			// 수정중인것과 저장된것 색선택
+			COLORREF usingColor = (it->isModifing ? curRgb : it->BColor);
+
+			// 점을 찍을땐 offset을 합쳐서~
+			SetPixel(hdc, xt + xOffset, yt + yOffset, usingColor);
+		}
 
 
-			if (!it->BCurve.empty() && bShowLine)
+		// 직선그리기 On일때만 그리자
+		if (!it->BCurve.empty() && bShowLine)
+		{
+			// 반복연산자
+			vector<Point2d>::iterator pit;
+			// 시작점으로 이동할때도 offset~
+			MoveToEx(hdc, it->BCurve[0].x * xRatio + xOffset, it->BCurve[0].y * yRatio + yOffset, NULL);
+			for (pit = it->BCurve.begin(); pit < it->BCurve.end(); pit++)
 			{
-				vector<Point2d>::iterator pit;
-				// 시작점으로 이동
-				MoveToEx(hdc, it->BCurve[0].x * xRatio + xOffset, it->BCurve[0].y * yRatio + yOffset, NULL);
-				for (pit = it->BCurve.begin(); pit < it->BCurve.end(); pit++)
-				{
-					LineTo(hdc, pit->x * xRatio + xOffset, pit->y * yRatio + yOffset);
-				}
+				// 직선 그릴때도 offset~
+				LineTo(hdc, pit->x * xRatio + xOffset, pit->y * yRatio + yOffset);
 			}
 		}
-	}
+	}	
 }

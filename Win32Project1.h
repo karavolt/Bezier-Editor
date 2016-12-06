@@ -10,8 +10,11 @@ typedef struct _Point2d {
 
 // 베지어 커브 하나 저장.
 typedef struct _BezierCurve {
+	// Curve 단 하나.
 	vector<Point2d> BCurve;
+	// Curve 색
 	COLORREF BColor;
+	// Curve 수정이 끝난것인지 여부
 	bool isModifing;
 }BezierCurve;
 
@@ -82,5 +85,5 @@ TCHAR Alphabet[26][2] = { TEXT("a"), TEXT("b"), TEXT("c"), TEXT("d"), TEXT("e"),
 						  TEXT("j"), TEXT("k"), TEXT("l"), TEXT("m"), TEXT("n"), TEXT("o"), TEXT("p"), TEXT("q"), TEXT("r"), 
 						  TEXT("s"), TEXT("t"), TEXT("u"), TEXT("v"), TEXT("w"), TEXT("x"), TEXT("y"), TEXT("z") };
 // 함수 원형
-void DrawBezier(HDC hdc, char AllocAlpha);
+void DrawBezier(HDC hdc);
 
