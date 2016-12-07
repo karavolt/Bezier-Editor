@@ -367,27 +367,23 @@ void DrawBezier(HDC hdc)
 {
 	// 현재 수정중인 알파벳을 가져오자
 	BezierCurves cur = bezierContainer[CurAllocAlpha];
-
 	// 반복 연산자 사용~
 	vector<BezierCurve>::iterator it;
 	for (it = cur.BezierAlphabet.begin(); it < cur.BezierAlphabet.end(); it++)
 	{
 		// 점의 수를 차수로 사용하자
 		int degree = it->BCurve.size();
-
 		// t는 [0,1], 0.001간격으로 점찍기
 		for (double t = 0.0; t < 1.0; t += 0.001)
 		{
 			// 베지어 곡선 계산한 x,y좌표
 			double xt = 0.0, yt = 0.0;
-
 			// 차수만큼 알아서 계산한다
 			for (int i = 0; i < degree; i++)
 			{
 				// 점정보를 받아와 확대비율을 곱한다
 				double xPos = it->BCurve[0 + i].x * xRatio,
 				   	   yPos = it->BCurve[0 + i].y * yRatio;
-
 				// 맨처음과 맨마지막은 차수만큼 곱하지 않음.
 				if (i == 0 || i == degree - 1)
 				{
@@ -400,10 +396,8 @@ void DrawBezier(HDC hdc)
 					yt += (degree - 1) * pow(t, i)  *pow(1 - t, degree - 1 - i) * (yPos);
 				}
 			}
-
 			// 수정중인것과 저장된것 색선택
 			COLORREF usingColor = (it->isModifing ? curRgb : it->BColor);
-
 			// 점을 찍을땐 offset을 합쳐서~
 			SetPixel(hdc, xt + xOffset, yt + yOffset, usingColor);
 		}
